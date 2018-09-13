@@ -197,8 +197,69 @@ unsigned int MemList::freeSize()
 //
 bool MemList::freeMemBlock(MemBlock * block_to_free)
 {
-    // To be implemented
-    return false;
+   MemBlock * current;// = block_to_free;
+   
+   bool foundBTF = false; // flips if the target block is found
+
+   if(!reserved_head){
+      return false;
+   }
+   current = reserved_head;
+
+   // Step 1: pop btf out of reserve list.
+   // Case 1: block to free is head
+   if(block_to_free == reserved_head) {
+      // Case 1a: it's the only block in reserved
+      if(!reserved_head->getNext()) {
+         reserved_head == NULL;
+         foundBTF = true;
+      }
+      else { // Case 1b: there are others after
+         reserved_head = reserved_head->getNext();
+         foundBTF = true;
+      }
+   } else { // Case 2: the btf is down the way
+      if (!reserved_head->getNext()) { // Case 2a: there's nothing other than head block, invalid BTF
+         return false;
+      } else { // Case 2b: reserve block is somewhere down the list
+         while(current->getNext()){
+            if (current->getNext() == block_to_free) {
+               current->setNext(current->getNext()->getNext()); 
+               foundBTF = true;
+               break;
+            }
+            current = current->getNext();
+         }
+      }
+   }
+
+   if(!foundBTF) { //if I didn't find BTF return false
+      return false;
+   }
+
+   // Step 2: add it to the free list ( if applicable)
+   // Case 1: free head goes after BTF
+   if(free_head->getAddr() >= block_to_free->getAddr()) {
+      // If the block is too big, return false, otherwise, add it before head)
+      if(block_to_free->getAddr() + block_to_free->getSize() > free_head->getAddr()) {
+         return false;
+      } else {
+         block_to_free->setNext(free_head);
+         free_head = block_to_free;
+      }
+   }else { // Case 2: BTF goes later
+      current = free_head;
+      while(current->getNext()){
+         if(current->getNext()->getAddr() >= block_to_free->getAddr() + block_to_free->getSize()) {
+            block_to_free->setNext(current->getNext());
+            current->setNext(block_to_free);
+            break;
+         }
+         current = current->getNext();
+      }
+   }
+
+   return true;
 }
 
 
@@ -229,14 +290,30 @@ MemBlock * MemList::maxFree()
    return largest_block;
 }
 
-// Return a pointer to the MemBlcok with the smallest size from the Free List
+// Return a pointer to the MemBlock with the smallest size from the Free List
 //
 // Level 2
 //
 MemBlock * MemList::minFree()
 {
-    // To be implemented
-    return NULL;
+   MemBlock * current;
+   MemBlock * smallest_block;
+   int smallest_val = 100000;
+
+   if(free_head){
+      current = free_head; 
+      smallest_val = current->getSize();
+      smallest_block = current;
+      while(current->getNext()) {
+         current = current->getNext();
+         if(current->getSize() < smallest_val) {
+            smallest_val = current->getSize();
+            smallest_block = current;
+         }
+      }
+   }
+
+   return smallest_block;
 }
 
 // Return the number of MemBlocks in the Free List
@@ -245,8 +322,19 @@ MemBlock * MemList::minFree()
 //
 unsigned int MemList::freeBlockCount()
 {
-    // To be implemented
-    return 0;
+   int block_count = 0;
+   MemBlock * current;
+   if(free_head){
+
+      current = free_head;
+      block_count++;
+      while(current->getNext()) {
+         block_count++;
+         current = current->getNext();
+      }
+   }
+
+    return block_count;
 }
 
 /////////////////////////////////////////////////////////////////////////////////
