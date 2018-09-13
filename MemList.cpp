@@ -74,8 +74,15 @@ void MemList::displayReserved()
 MemList::MemList(unsigned int s_addr, unsigned int block_size)
 {
     // To be implemented(replace the two lines below)
-    free_head = NULL;
-    reserved_head = NULL;
+   MemBlock * temp = new MemBlock;
+   temp->setSize(block_size);
+   temp->setAddr(s_addr); 
+   
+   free_head = temp; 
+
+   mem_size = block_size;
+   
+   reserved_head = NULL;
 }
 
 // Find the first MemBlock in the Free list which greater than or equal to the amount requested(via 
@@ -89,7 +96,46 @@ MemList::MemList(unsigned int s_addr, unsigned int block_size)
 //
 MemBlock * MemList::reserveMemBlock(unsigned int block_size)
 {
-    // To be implemented
+
+   MemBlock * temp = new MemBlock();
+   temp->setSize(block_size);
+   temp->setAddr(1000000); //hopefully you don't use one million as a test address
+   temp->setNext(NULL);
+
+    // if my first block is big enough, grab from there.
+   if(free_head->getSize() >= block_size) {
+      temp->setAddr(free_head->getAddr());
+      //temp = free_head;
+      free_head->setAddr(free_head->getAddr() + block_size);
+      free_head->setSize(free_head->getSize() - block_size);
+   } else { // otherwise look through all free blocks and do same
+      MemBlock * current = free_head; 
+      while(current->getNext() && (temp->getAddr() == 1000000)) {
+         if(current->getSize() >= block_size) { //if a block is large enough
+            temp->setAddr(current->getAddr()); //make that block's address my new reserved address
+            current->setAddr(current->getAddr() + block_size); //scoot up the free block's address
+            current->setSize(current->getSize() - block_size);
+         }
+         current = current->getNext();
+         //current->setAddr(current->getNext()->getAddr()); // on to the next one
+      }
+   } 
+
+// Now that the block has been grabbed, add it to reserved list
+   if(temp->getAddr() != 1000000) { // if my previous loop changed address from default 
+  //    return temp;
+  // }
+
+      if(reserved_head) { // Case 1: adding to extant reserved list; add before head
+         temp->setNext(reserved_head);//         reserved_head = temp; //->setAddr(temp->getAddr());
+         reserved_head = temp;
+      } else { // Case 2: adding to empty reserved list
+         reserved_head = temp;
+         //reserved_head->setAddr(temp->getAddr());
+      }   
+
+   return temp;
+   }
     return NULL;
 }
 
@@ -100,8 +146,21 @@ MemBlock * MemList::reserveMemBlock(unsigned int block_size)
 //
 unsigned int MemList::reservedSize()
 {
-    // To be implemented
-    return 0;
+   unsigned int totalSize = 0; 
+   MemBlock * current;
+   // To be implemented
+   if(!reserved_head) {
+      return 0;
+   } else {
+      current = reserved_head;
+      totalSize += current->getSize();
+      while(current->getNext()) {
+         current = current->getNext();
+         totalSize += current->getSize();
+      }
+   }
+   
+   return totalSize;
 }
 
 // Return the total size of all blocks in the Free List
@@ -109,8 +168,20 @@ unsigned int MemList::reservedSize()
 // Level 1
 unsigned int MemList::freeSize()
 {
-    // To be implemented
-    return 0;
+   unsigned int totalSize = 0; 
+   MemBlock * current;
+   if(!free_head) {
+      return 0;
+   } else {
+      current = free_head;
+      totalSize += current->getSize();
+      while(current->getNext()) {
+         current = current->getNext();
+         totalSize += current->getSize();
+      }
+   }
+   
+   return totalSize;
 }
 
 /////////////////////////////////////////////////////////////////////////////////
@@ -132,14 +203,30 @@ bool MemList::freeMemBlock(MemBlock * block_to_free)
 
 
 
-// Return a pointer to the MemBlcok with the largest size from the Free List
+// Return a pointer to the MemBlock with the largest size from the Free List
 //
 // Level 2
 //
 MemBlock * MemList::maxFree() 
 {
-    // To be implemented
-    return NULL;
+   MemBlock * current;
+   MemBlock * largest_block;
+   int largest_val = 0;
+
+   if(free_head){
+      current = free_head; 
+      largest_val = current->getSize();
+      largest_block = current;
+      while(current->getNext()) {
+         current = current->getNext();
+         if(current->getSize() > largest_val) {
+            largest_val = current->getSize();
+            largest_block = current;
+         }
+      }
+   }
+
+   return largest_block;
 }
 
 // Return a pointer to the MemBlcok with the smallest size from the Free List
